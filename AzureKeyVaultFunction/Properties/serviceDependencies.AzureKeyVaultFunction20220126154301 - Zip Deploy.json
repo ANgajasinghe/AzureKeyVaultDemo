@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "storage1": {
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.Storage/storageAccounts/azurekeyvaultfunction202",
+      "type": "storage.azure",
+      "connectionId": "AzureWebJobsStorage"
+    },
+    "apis1": {
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.ApiManagement/service/AzureKeyVaultFunctionapi/apis/AzureKeyVaultFunction",
+      "type": "apis.azure"
+    }
+  }
+}
