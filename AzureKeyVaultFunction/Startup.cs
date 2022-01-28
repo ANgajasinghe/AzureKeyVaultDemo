@@ -1,4 +1,7 @@
-﻿using Azure.Identity;
+﻿using Azure.Core;
+using Azure.Extensions.AspNetCore.Configuration.Secrets;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 using AzureKeyVaultFunction;
 using AzureKeyVaultFunction.Config;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
@@ -18,9 +21,9 @@ namespace AzureKeyVaultFunction
         {
             // throw new NotImplementedException();
 
-            
 
-            builder.Services.AddScoped<AppConfiguration>((services) => 
+
+            builder.Services.AddScoped<AppConfiguration>((services) =>
             {
                 var config = services.GetService<IConfiguration>();
                 var data = config!.GetSection(nameof(AppConfiguration)).Get<AppConfiguration>();
@@ -46,33 +49,49 @@ namespace AzureKeyVaultFunction
                 });
 
 
-            builder.Services.AddScoped<HttpStart>();
+            // builder.Services.AddScoped<HttpStart>();
         }
 
         public override void ConfigureAppConfiguration(IFunctionsConfigurationBuilder builder)
         {
             var builtConfig = builder.ConfigurationBuilder.Build();
 
+
+
+         
+
             var keyVaultEndpoint = builtConfig["AzureKeyVaultEndpoint"];
 
-            if (!string.IsNullOrEmpty(keyVaultEndpoint))
+
+            SecretClient secretClient = new SecretClient(
+    new Uri("https://agsamplekey.vault.azure.net/"),
+    new AzureCliCredential(),
+    new SecretClientOptions
             {
-                builder.ConfigurationBuilder
-                       .SetBasePath(Environment.CurrentDirectory)
-                       .AddAzureKeyVault(new Uri(keyVaultEndpoint), new DefaultAzureCredential())
-                       .AddJsonFile("local.settings.json", true)
-                       .AddEnvironmentVariables()
-                   .Build();
-            }
-            else 
-            {
-                builder.ConfigurationBuilder
-                      .SetBasePath(Environment.CurrentDirectory)
-                      .AddJsonFile("local.settings.json", true)
-                      .AddUserSecrets(Assembly.GetExecutingAssembly(), true)
-                      .AddEnvironmentVariables()
-                      .Build();
-            }
+                Retry =
+                        {
+                            Delay = TimeSpan.FromSeconds(2),
+                            MaxDelay = TimeSpan.FromSeconds(16),
+                            MaxRetries = 5,
+                            Mode = RetryMode.Exponential
+                        }
+            });
+
+
+
+
+            builder.ConfigurationBuilder
+                   .SetBasePath(Environment.CurrentDirectory)
+                   .AddAzureKeyVault(
+                    secretClient,
+                    new AzureKeyVaultConfigurationOptions()
+                    {
+                        ReloadInterval = TimeSpan.FromSeconds(60)
+                    })
+                   .AddJsonFile("local.settings.json", true)
+                   .AddEnvironmentVariables()
+               .Build();
+
 
         }
     }
